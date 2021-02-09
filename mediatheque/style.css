@@ -1,0 +1,17 @@
+*, *::after, *::before {
+    padding: 0;
+    margin: 0;
+    box-sizing: content-box;
+}
+
+html {
+    font-size: 62.5%;
+}
+
+.films{
+    display: flex;
+}
+
+.film{
+    padding: 1rem;
+}
