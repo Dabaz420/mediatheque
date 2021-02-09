@@ -8,6 +8,7 @@
 <body>
 
     <?php
+        //EXO 5, 6, 7, 8 PART 2
         if(!isset($_REQUEST['civilite'], $_REQUEST['nom'], $_REQUEST['prenom'])){
     ?>
             <form action="" method="POST" enctype="multipart/form-data">
