@@ -25,13 +25,21 @@
         echo "<div class='films'>";
         foreach($resultat as $key => $value){
             echo "<div class='film'>
-                  <h2>". $value['titre'] ."</h2>
-                  <img src='". $value['affiche'] ."' alt='affiche du film'/>
-                  <p>". $value['acteurs'] ."</p>
-                  <p>". $value['date_de_sortie'] ."</p>
-                  <p>". $value['synopsis'] ."</p>
-                  <p>". $value['realisateur'] ."</p>
-                  </div>";
+                  <h2>". htmlentities($value['titre'], ENT_QUOTES) ."</h2>
+                  <img src='". htmlentities($value['affiche'], ENT_QUOTES) ."' alt='affiche du film'/>
+                  <p>". htmlentities($value['acteurs'], ENT_QUOTES) ."</p>
+                  <p>". htmlentities($value['date_de_sortie'], ENT_QUOTES) ."</p>
+                  <p>". htmlentities($value['synopsis'], ENT_QUOTES) ."</p>
+                  <p>". htmlentities($value['realisateur'], ENT_QUOTES) ."</p>";
+
+            if($value['disponible'] == 1){
+                echo "<p>Le film est disponible<p>
+                      </div>";
+            }
+            else{
+                echo "<p>Le film n'est plus disponible</p>
+                      </div>";
+            }
         }
         echo "</div>";
 
@@ -62,8 +70,8 @@
 
             try{
                 $pdo = new PDO(DB_DRIVER . ":host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_LOGIN, DB_PASS, DB_OPTIONS);
-                $requete = "INSERT INTO `Film` (`titre`, `affiche`, `acteurs`, `date_de_sortie`, `synopsis`, `realisateur`)
-                VALUES ( :titre, :affiche, :acteurs, :date_de_sortie, :synopsis, :realisateur );";
+                $requete = "INSERT INTO `Film` (`titre`, `affiche`, `acteurs`, `date_de_sortie`, `synopsis`, `realisateur`, `disponible`)
+                VALUES ( :titre, :affiche, :acteurs, :date_de_sortie, :synopsis, :realisateur, :disponible );";
                 $prepare = $pdo->prepare($requete);
                 $prepare->execute(array(
                     ":titre" => $titre,
@@ -71,7 +79,8 @@
                     ":acteurs" => $acteurs,
                     ":date_de_sortie" => $date_de_sortie,
                     ":synopsis" => $synopsis,
-                    ":realisateur" => $realisateur
+                    ":realisateur" => $realisateur,
+                    ":disponible" => 01
                 ));
                 $res = $prepare->rowCount();
 
@@ -93,18 +102,18 @@
                 $prepare = $pdo->prepare($requete);
                 $prepare->execute();
                 $resultat = $prepare->fetchAll();
-                $resultat = unique_multidim_array($resultat, "titre");
+                
             }
             catch (PDOException $e){
                 exit("❌🙀❌ OOPS :\n" . $e->getMessage());
             }
     ?>
             <h2>modifier un film</h2>
-            <form action="" method="POST" enctype="multipart/form-data">
+            <form action="" method="POST">
                 <?php
                     echo "<select name='modif'>";
                     foreach($resultat as $key => $value){
-                        echo "<option value='". $value['id'] ."'>". $value['titre'] ."</option>";
+                        echo "<option value='". htmlentities($value['id'], ENT_QUOTES) ."'>". htmlentities($value['titre'], ENT_QUOTES) ."</option>";
                     }
                     echo "</select>";
                 ?>
@@ -139,7 +148,7 @@
                     <input type='text' name='date_de_sortiemodif' value='". htmlentities($resultat[0]['date_de_sortie'], ENT_QUOTES) ."' required />
                     <input type='text' name='synopsismodif' value='". htmlentities($resultat[0]['synopsis'], ENT_QUOTES) ."' required />
                     <input type='text' name='realisateurmodif' value='". htmlentities($resultat[0]['realisateur'], ENT_QUOTES) ."' required />
-                    <input type='text' name='id' value='". $resultat[0]['id'] ."' hidden />
+                    <input type='text' name='id' value='". htmlentities($resultat[0]['id'], ENT_QUOTES) ."' hidden />
                     <input type='submit' name='modifier' value='Oui'/>
                 </form> ";
         }
@@ -195,7 +204,7 @@
                 $prepare = $pdo->prepare($requete);
                 $prepare->execute();
                 $resultat = $prepare->fetchAll();
-                $resultat = unique_multidim_array($resultat, "titre");
+                
             }
             catch (PDOException $e){
                 exit("❌🙀❌ OOPS :\n" . $e->getMessage());
@@ -206,7 +215,7 @@
                 <?php
                     echo "<select name='supp'>";
                     foreach($resultat as $key => $value){
-                        echo "<option value='". $value['id'] ."'>". $value['titre'] ."</option>";
+                        echo "<option value='". htmlentities($value['id'], ENT_QUOTES) ."'>". htmlentities($value['titre'], ENT_QUOTES) ."</option>";
                     }
                     echo "</select>";
                 ?>
@@ -219,14 +228,19 @@
 
             $supp = $_REQUEST['supp'];
 
-            $pdo = new PDO(DB_DRIVER . ":host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_LOGIN, DB_PASS, DB_OPTIONS);
-            $requete = "SELECT * FROM `Film`
-                        WHERE `id` = :id;";
-            $prepare = $pdo->prepare($requete);
-            $prepare->execute(array(
-                ":id" => $supp
-            ));
-            $resultat = $prepare->fetchAll();
+            try{
+                $pdo = new PDO(DB_DRIVER . ":host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_LOGIN, DB_PASS, DB_OPTIONS);
+                $requete = "SELECT * FROM `Film`
+                            WHERE `id` = :id;";
+                $prepare = $pdo->prepare($requete);
+                $prepare->execute(array(
+                    ":id" => $supp
+                ));
+                $resultat = $prepare->fetchAll();
+            }
+            catch (PDOException $e){
+                exit("❌🙀❌ OOPS :\n" . $e->getMessage());
+            }
 
             echo "<h2>Voulez vous supprimer ce film ?</h2>
                 <form action='' method='POST'>
@@ -236,7 +250,7 @@
                     <input type='text' name='date_de_sortiesupp' value='". htmlentities($resultat[0]['date_de_sortie'], ENT_QUOTES) ."' required />
                     <input type='text' name='synopsissupp' value='". htmlentities($resultat[0]['synopsis'], ENT_QUOTES) ."' required />
                     <input type='text' name='realisateursupp' value='". htmlentities($resultat[0]['realisateur'], ENT_QUOTES) ."' required />
-                    <input type='number' name='id' value='". $resultat[0]['id'] ."' hidden />
+                    <input type='number' name='id' value='". htmlentities($resultat[0]['id'], ENT_QUOTES) ."' hidden />
                     <input type='submit' name='supprimer' value='supprimer'/>
                 </form> ";
         }
@@ -274,7 +288,7 @@
                 $prepare = $pdo->prepare($requete);
                 $prepare->execute();
                 $resultat = $prepare->fetchAll();
-                $resultat = unique_multidim_array($resultat, "titre");
+                
             }
             catch (PDOException $e){
                 exit("❌🙀❌ OOPS :\n" . $e->getMessage());
@@ -285,7 +299,7 @@
                 <?php
                     echo "<select name='emprunt'>";
                     foreach($resultat as $key => $value){
-                        echo "<option value='". $value['id'] ."'>". $value['titre'] ."</option>";
+                        echo "<option value='". htmlentities($value['id'], ENT_QUOTES) ."'>". htmlentities($value['titre'], ENT_QUOTES) ."</option>";
                     }
                     echo "</select>";
                 ?>
@@ -315,15 +329,18 @@
             echo "<h2>modifier les dates d'emprunt d'un film</h2>
                 <form action='' method='POST'>
                     <label for='date_d_emprunt'>Date d'emprunt</label>
-                    <input type='date' name='date_d_emprunt' value='". htmlentities($resultat[0]['date_d_emprunt'], ENT_QUOTES) ."' required />
+                    <input type='date' name='date_d_emprunt'/>
                     <label for='date_de_retour'>Date de retour</label>
-                    <input type='date' name='date_de_retour' value='". htmlentities($resultat[0]['date_de_retour'], ENT_QUOTES) ."' required />
-                    <input type='text' name='id' value='". $resultat[0]['id'] ."' hidden />
+                    <input type='date' name='date_de_retour'/>
+                    <input type='text' name='id' value='". htmlentities($resultat[0]['id'], ENT_QUOTES) ."' hidden />
                     <input type='submit' name='emprunter' value='Valider'/>
+                    </br>
+                    <label for='rendu'>Si le film à été rendu</label>
+                    <input type='submit' name='rendu' value='Film rendu'>
                 </form> ";
         }
 
-        if(isset($_REQUEST['emprunter'])){
+        if(isset($_REQUEST['emprunter'], $_REQUEST['date_d_emprunt'], $_REQUEST['date_de_retour'])){
 
             $date_d_emprunt = $_REQUEST['date_d_emprunt'];
             $date_de_retour = $_REQUEST['date_de_retour'];
@@ -333,12 +350,14 @@
                 $pdo = new PDO(DB_DRIVER . ":host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_LOGIN, DB_PASS, DB_OPTIONS);
                 $requete = "UPDATE `Film` SET
                 `date_d_emprunt` = :date_d_emprunt,
-                `date_de_retour` = :date_de_retour
+                `date_de_retour` = :date_de_retour,
+                `disponible` = :disponible
                 WHERE `id` = :id;"; 
                 $prepare = $pdo->prepare($requete);
                 $prepare->execute(array(
                     ":date_d_emprunt" => $date_d_emprunt,
                     ":date_de_retour" => $date_de_retour,
+                    ":disponible" => 0,
                     ":id" => $id
                 ));
                 $res = $prepare->rowCount();
@@ -353,21 +372,34 @@
                 exit("❌🙀❌ OOPS :\n" . $e->getMessage());
             }
         }
+        elseif(isset($_REQUEST['rendu'])){
+            $id = $_REQUEST['id'];
 
+            try{
+                $pdo = new PDO(DB_DRIVER . ":host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_LOGIN, DB_PASS, DB_OPTIONS);
+                $requete = "UPDATE `Film` SET
+                `date_d_emprunt` = :date_d_emprunt,
+                `date_de_retour` = :date_de_retour,
+                `disponible` = :disponible
+                WHERE `id` = :id;"; 
+                $prepare = $pdo->prepare($requete);
+                $prepare->execute(array(
+                    ":date_d_emprunt" => NULL,
+                    ":date_de_retour" => NULL,
+                    ":disponible" => 1,
+                    ":id" => $id
+                ));
+                $res = $prepare->rowCount();
 
-        function unique_multidim_array($array, $key) {
-            $temp_array = array();
-            $i = 0;
-            $key_array = array();
-           
-            foreach($array as $val) {
-                if (!in_array($val[$key], $key_array)) {
-                    $key_array[$i] = $val[$key];
-                    $temp_array[$i] = $val;
+                if($res == 1){
+                    header("Location: mediatheque.php");
+                    exit(); 
                 }
-                $i++;
+        
             }
-            return $temp_array;
+            catch (PDOException $e){
+                exit("❌🙀❌ OOPS :\n" . $e->getMessage());
+            }
         }
     ?>
 </body>
